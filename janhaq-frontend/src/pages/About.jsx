@@ -4,6 +4,7 @@ import { Shield, Brain, Award, Linkedin } from "lucide-react";
 import krishaImg from "./krisha.jpg";
 import dhritiImg from "./dhriti_pic.jpg";
 import kavyaImg from "./kavya_pic.jpg";
+import BackToTop from "../components/BackToTop";
 
 const teamMembers = [
   {
@@ -279,6 +280,8 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
+      <BackToTop />
     </div>
   );
 }
+//about.jsx

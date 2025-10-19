@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
+import BackToTop from "../components/BackToTop";
+
 import {
   AlertTriangle,
   CheckCircle,
@@ -17,8 +19,10 @@ import {
   Copy,
   Check,
   X,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 const KEYWORDS_REGEX = /\b(agreement|contract|clause|liability|termination|penalty|indemnity|renewal)\b/gi;
 const ACTIONABLE_REGEX = /\b(\d+\s*(days?|weeks?|months?|years?)|due by|deadline|penalty|fine|termination|payment of \$?\d+|effective date|must|shall|obligated|required)\b/gi;
@@ -68,6 +72,7 @@ export default function Results() {
   const [documentEmail, setDocumentEmail] = useState("");
   const [documentEmailLoading, setDocumentEmailLoading] = useState(false);
   const [copiedDocumentEmail, setCopiedDocumentEmail] = useState(false);
+  const [expandedClauses, setExpandedClauses] = useState({});
 
   React.useEffect(() => {
     const chatContainer = document.getElementById("chat-container");
@@ -90,6 +95,14 @@ export default function Results() {
 
   // Check if this is detailed analysis
   const isDetailedAnalysis = analysisType === "detailed" || (analysis.clauses && Array.isArray(analysis.clauses));
+
+  // Toggle clause expansion
+  const toggleClause = (index) => {
+    setExpandedClauses(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
 
   // Handle Chat with Document Context
   const handleSendMessage = async () => {
@@ -330,97 +343,125 @@ export default function Results() {
                 </Card>
               </motion.div>
 
-              {/* Clause Cards */}
-              <div className="space-y-6">
+              {/* Collapsible Clause Cards */}
+              <div className="space-y-4">
                 {clauses.length > 0 ? (
                   clauses.map((clause, index) => (
                     <motion.div
                       key={index}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 + index * 0.1 }}
+                      transition={{ delay: 0.2 + index * 0.05 }}
                     >
-                      <Card className="border-none bg-[#064E3B]/90 backdrop-blur-md shadow-xl hover:shadow-2xl transition-all">
-                        <CardHeader className="border-b border-gray-700/50">
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-2">
-                                <span className="text-gray-400 font-mono text-sm">
-                                  Clause #{index + 1}
-                                </span>
-                                <span
-                                  className={`px-3 py-1 rounded-full text-xs font-semibold border ${getRiskBadge(
-                                    clause.risk_level
-                                  )}`}
-                                >
-                                  {clause.risk_level} Risk
-                                </span>
-                              </div>
-                              <p className="text-gray-300 italic text-sm leading-relaxed bg-black/30 p-4 rounded-lg border border-gray-700/50">
-                                "{clause.clause}"
-                              </p>
-                            </div>
-                          </div>
-                        </CardHeader>
-
-                        <CardContent className="p-6 space-y-6">
-                          {/* Impact Section */}
-                          <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4">
-                            <div className="flex items-start gap-3">
-                              <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                              <div>
-                                <h4 className="text-white font-semibold mb-1">
-                                  Potential Impact
-                                </h4>
-                                <p className="text-gray-200 text-sm leading-relaxed">
-                                  {clause.impact}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Explanation Section */}
-                          <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
-                            <div className="flex items-start gap-3">
-                              <FileText className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                              <div>
-                                <h4 className="text-white font-semibold mb-1">
-                                  Why This Matters
-                                </h4>
-                                <p className="text-gray-200 text-sm leading-relaxed">
-                                  {clause.explanation}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Recommendation Section */}
-                          <div className="bg-emerald-900/20 border border-emerald-500/30 rounded-lg p-4">
-                            <div className="flex items-start gap-3">
-                              <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                      <Card className="border-none bg-[#064E3B]/90 backdrop-blur-md shadow-xl hover:shadow-2xl transition-all overflow-hidden">
+                        {/* Collapsed Header - Always Visible */}
+                        <div
+                            onClick={() => toggleClause(index)}
+                            className="cursor-pointer hover:bg-cyan-700/40 transition-colors"
+                          >
+                          <CardHeader className="border-b border-gray-700/50 p-6">
+                            <div className="flex items-start justify-between gap-4">
                               <div className="flex-1">
-                                <h4 className="text-white font-semibold mb-1">
-                                  What You Should Do
-                                </h4>
-                                <p className="text-gray-200 text-sm leading-relaxed">
-                                  {clause.recommendation}
+                                <div className="flex items-center gap-3 mb-3">
+                                  <span className="text-gray-400 font-mono text-sm font-semibold">
+                                    Clause #{index + 1}
+                                  </span>
+                                  <span
+                                    className={`px-3 py-1 rounded-full text-xs font-semibold border ${getRiskBadge(
+                                      clause.risk_level
+                                    )}`}
+                                  >
+                                    {clause.risk_level} Risk
+                                  </span>
+                                </div>
+                                <p className="text-gray-300 italic text-sm leading-relaxed bg-black/30 p-4 rounded-lg border border-gray-700/50">
+                                  "{clause.clause}"
                                 </p>
                               </div>
+                              <div className="flex-shrink-0 pt-2">
+                                {expandedClauses[index] ? (
+                                  <ChevronUp className="w-5 h-5 text-cyan-400" />
+                                ) : (
+                                  <ChevronDown className="w-5 h-5 text-cyan-400" />
+                                )}
+                              </div>
                             </div>
-                          </div>
+                          </CardHeader>
+                        </div>
 
-                          {/* Negotiation Button */}
-                          <div className="pt-2">
-                            <Button
-                              onClick={() => handleGenerateNegotiation(clause.clause)}
-                              size="sm"
-                              className="bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white shadow-lg"
+                        {/* Expandable Content */}
+                        <AnimatePresence>
+                          {expandedClauses[index] && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.3 }}
                             >
-                              <Mail className="w-4 h-4 mr-2" />
-                              Draft Negotiation Email
-                            </Button>
-                          </div>
-                        </CardContent>
+                              <CardContent className="p-6 space-y-6">
+                                {/* Impact Section */}
+                                <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4">
+                                  <div className="flex items-start gap-3">
+                                    <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                                    <div>
+                                      <h4 className="text-white font-semibold mb-1">
+                                        Potential Impact
+                                      </h4>
+                                      <p className="text-gray-200 text-sm leading-relaxed">
+                                        {clause.impact}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Explanation Section */}
+                                <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
+                                  <div className="flex items-start gap-3">
+                                    <FileText className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                                    <div>
+                                      <h4 className="text-white font-semibold mb-1">
+                                        Why This Matters
+                                      </h4>
+                                      <p className="text-gray-200 text-sm leading-relaxed">
+                                        {clause.explanation}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Recommendation Section */}
+                                <div className="bg-emerald-900/20 border border-emerald-500/30 rounded-lg p-4">
+                                  <div className="flex items-start gap-3">
+                                    <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                                    <div className="flex-1">
+                                      <h4 className="text-white font-semibold mb-1">
+                                        What You Should Do
+                                      </h4>
+                                      <p className="text-gray-200 text-sm leading-relaxed">
+                                        {clause.recommendation}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Negotiation Button */}
+                                <div className="pt-2">
+                                  <Button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleGenerateNegotiation(clause.clause);
+                                    }}
+                                    size="sm"
+                                    className="bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white shadow-lg"
+                                  >
+                                    <Mail className="w-4 h-4 mr-2" />
+                                    Draft Negotiation Email
+                                  </Button>
+                                </div>
+                              </CardContent>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </Card>
                     </motion.div>
                   ))
@@ -728,9 +769,83 @@ export default function Results() {
             </motion.div>
           </div>
         )}
+
+        {/* Document Email Modal */}
+        {showDocumentEmail && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-gradient-to-br from-purple-900/90 to-pink-900/90 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-purple-400/30"
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-2xl font-bold text-white flex items-center gap-2">
+                    <Mail className="w-6 h-6 text-pink-400" />
+                    Document Review Email
+                  </h3>
+                  <button
+                    onClick={handleCloseDocumentEmail}
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+
+                <div className="mb-4 bg-black/30 p-4 rounded-lg border border-purple-500/30">
+                  <p className="text-gray-300 text-sm">
+                    Comprehensive email covering all findings from the document analysis
+                  </p>
+                </div>
+
+                {documentEmailLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-pink-400 border-t-transparent"></div>
+                  </div>
+                ) : documentEmail ? (
+                  <div>
+                    <div className="bg-gray-800 p-6 rounded-lg mb-4 border border-gray-700 max-h-96 overflow-y-auto">
+                      <pre className="text-gray-200 whitespace-pre-wrap font-sans text-sm leading-relaxed">
+                        {documentEmail}
+                      </pre>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <Button
+                        onClick={handleCopyDocumentEmail}
+                        className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white"
+                      >
+                        {copiedDocumentEmail ? (
+                          <>
+                            <Check className="w-4 h-4 mr-2" />
+                            Copied!
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-4 h-4 mr-2" />
+                            Copy to Clipboard
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        onClick={handleCloseDocumentEmail}
+                        variant="outline"
+                        className="border-gray-600 text-gray-300 hover:bg-gray-800"
+                      >
+                        Close
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </motion.div>
+          </div>
+        )}
+        <BackToTop />
       </div>
     );
   }
+
 
 // Render Standard Analysis View
   const summary = analysis.summary || "No summary available.";
@@ -1323,6 +1438,7 @@ export default function Results() {
           </motion.div>
         </div>
       )}
+      <BackToTop />
     </div>
   );
 }
